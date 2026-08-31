@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>多平台增长选品台</title>
+  <link rel="stylesheet" href="/static/styles.css?v=8">
+  <link rel="stylesheet" href="/static/red-theme.css?v=8">
+</head>
+<body>
+  <header>
+    <div>
+      <p class="eyebrow">BEAUTY PRODUCT RADAR</p>
+      <h1>多平台增长选品台</h1>
+      <p class="subtitle">追踪1688商品与抖音电商商机，发现正在加速的美容个护需求</p>
+    </div>
+    <div class="actions">
+      <button class="secondary" id="demoBtn">运行演示采集</button>
+      <button class="primary" id="collectBtn">采集 1688</button>
+      <button class="primary douyin-button" id="douyinCollectBtn">采集抖音商机</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="stats">
+      <article><span id="countLabel">候选商品</span><strong id="productCount">—</strong></article>
+      <article><span id="growthLabel">已有增长数据</span><strong id="growthReady">—</strong></article>
+      <article><span id="riskLabel">高风险宣称</span><strong id="highRisk">—</strong></article>
+      <article><span>最近任务</span><strong id="runStatus">未运行</strong></article>
+    </section>
+
+    <section class="panel controls">
+      <label>数据平台
+        <select id="platformFilter"><option value="1688">1688商品</option><option value="douyin">抖音商机</option></select>
+      </label>
+      <label class="platform-1688">商品品类
+        <select id="keywordFilter"><option value="">全部品类</option></select>
+      </label>
+      <label class="platform-1688">最低成交量
+        <input id="minSales" type="number" min="0" value="0">
+      </label>
+      <button class="secondary" id="refreshBtn">刷新榜单</button>
+      <button class="text-button platform-1688" id="keywordBtn">品类维护</button>
+      <label class="auto-setting platform-1688"><span>自动采集</span><input id="autoEnabled" type="checkbox"></label>
+      <label class="platform-1688"><span>每日开始时间</span><input id="dailyStartHour" type="number" min="13" max="23" value="13"></label>
+      <label class="platform-1688"><span>每批关键词</span><input id="batchSize" type="number" min="1" max="5" value="2"></label>
+      <label class="platform-1688"><span>每个词采集页数</span><input id="pagesPerKeyword" type="number" min="1" max="3" value="2"></label>
+      <label class="platform-1688"><span>搜索间隔（秒）</span><input id="minDelaySeconds" type="number" min="10" max="120" value="20"></label>
+      <button class="text-button platform-1688" id="saveSettings">保存设置</button>
+      <label class="platform-douyin hidden"><span>本次采集页数</span><input id="douyinPages" type="number" min="1" max="5" value="2"></label>
+      <span class="status" id="message"></span>
+    </section>
+
+    <section class="notice" id="noticeText">
+      <strong>增长榜按相邻两天同一时段计算。</strong>
+      每天从设定时间开始分批采集，批次间隔至少30分钟；只有约24小时且销量口径一致的快照才参与增长计算。
+    </section>
+
+    <section class="panel table-wrap" id="productTableWrap">
+      <table>
+        <thead>
+          <tr>
+            <th>排名</th><th>商品</th><th>价格</th><th>当前成交</th><th>本轮增量</th>
+            <th>日均增量</th><th>增长率</th><th>趋势分</th><th>风险</th><th>置信度</th>
+          </tr>
+        </thead>
+        <tbody id="productRows"></tbody>
+      </table>
+      <div class="empty" id="emptyState">还没有数据，先运行两次“演示采集”查看增长榜。</div>
+    </section>
+
+    <section class="panel table-wrap hidden" id="douyinTableWrap">
+      <table>
+        <thead><tr><th>排名</th><th>抖音机会词</th><th>搜索次数</th><th>成交增速</th><th>推荐理由</th><th>扶持权益</th><th>代发货源</th><th>商机分</th><th>采集时间</th></tr></thead>
+        <tbody id="douyinRows"></tbody>
+      </table>
+      <div class="empty" id="douyinEmpty">还没有抖音商机数据，点击“采集抖音商机”开始。</div>
+    </section>
+  </main>
+
+  <dialog id="keywordDialog">
+    <form method="dialog">
+      <div class="dialog-head"><h2>品类维护</h2><button value="cancel" aria-label="关闭">×</button></div>
+      <p>每个品类可以配置多个 1688 搜索词，每行一个。停用品类后将跳过其全部关键词。</p>
+      <div id="categoryRows" class="category-rows"></div>
+      <button type="button" id="addCategory" class="secondary add-category">＋ 添加品类</button>
+      <div class="dialog-actions"><button value="cancel" class="secondary">取消</button><button type="button" id="saveKeywords" class="primary">保存</button></div>
+    </form>
+  </dialog>
+  <script src="/static/app.js?v=8"></script>
+</body>
+</html>

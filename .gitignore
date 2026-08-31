@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+data/*.db
+data/*.db-*
+data/browser_profile/
+data/douyin_browser_profile/
+data/.DS_Store
+.DS_Store

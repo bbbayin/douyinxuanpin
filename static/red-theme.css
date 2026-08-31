@@ -1,0 +1,139 @@
+:root {
+  --bg: #fff5f4;
+  --ink: #2b1715;
+  --muted: #7b625f;
+  --panel: #fffdfc;
+  --line: #ead7d4;
+  --green: #b42318;
+  --lime: #ffd5cf;
+  --danger: #b42318;
+}
+
+header {
+  background: linear-gradient(135deg, #8f1710, #c52a1e 65%, #dc4b3e);
+}
+
+.primary {
+  background: #ffd5cf;
+  color: #7a271a;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: .5;
+}
+
+.notice {
+  background: #fff0ee;
+  color: #7a271a;
+  border-left-color: #c52a1e;
+}
+
+.score {
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.positive {
+  color: #c52a1e;
+}
+
+.safe {
+  color: #8f5b55;
+}
+
+.product img,
+.image-placeholder {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 54px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f8e5e2;
+}
+
+.image-placeholder,
+.image-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a77b75;
+  font-size: 11px;
+}
+
+img.image-error {
+  visibility: hidden;
+}
+
+.hidden { display: none !important; }
+.douyin-button { background: #1f1f22; color: white; }
+.benefit { display:inline-block; margin:2px; padding:4px 7px; border-radius:5px; background:#fee4e2; color:#b42318; font-size:11px; }
+.source-yes { color:#b42318; font-weight:750; }
+.muted { color:var(--muted); }
+#douyinTableWrap table { min-width: 1050px; }
+#douyinRows td.title small { display:block; color:var(--muted); margin-top:5px; }
+
+#keywordDialog {
+  width: min(760px, 94vw);
+  max-height: 88vh;
+}
+
+#keywordDialog form {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.category-rows {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 12px;
+}
+
+.category-card {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff8f7;
+}
+
+.category-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.category-card-head > input {
+  flex: 1;
+  min-width: 160px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.category-enabled {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.delete-category {
+  padding: 7px 9px;
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.add-category {
+  width: 100%;
+}
+
+@media(max-width: 600px) {
+  .category-card-head { flex-wrap: wrap; }
+  .category-card-head > input { width: 100%; flex-basis: 100%; }
+}
