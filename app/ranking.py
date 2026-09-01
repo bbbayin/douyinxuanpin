@@ -2,6 +2,7 @@ import math
 from datetime import datetime
 
 from .config import RISK_TERMS
+from .brands import classify_brand
 
 
 def _dt(value: str) -> datetime:
@@ -33,6 +34,7 @@ def rank_products(
     keyword: str = "",
     min_sales: int = 0,
     allowed_keywords: set[str] | None = None,
+    brands: list[dict] | None = None,
 ) -> list[dict]:
     ranked = []
     for product in products:
@@ -70,6 +72,7 @@ def rank_products(
         rate_signal = 0 if growth_rate is None else max(min(growth_rate, 3), -1) * 18
         score = round(sales_signal + growth_signal + rate_signal, 1)
         flags = risk_flags(product["title"])
+        brand = classify_brand([product["title"], product.get("shop_name")], brands)
         ranked.append({
             **{k: v for k, v in product.items() if k not in {"snapshots", "raw_json"}},
             "image_url": product.get("image_url") or ("/static/demo-product.svg" if str(product.get("external_id", "")).startswith("demo-") else None),
@@ -87,6 +90,7 @@ def rank_products(
             "daily_velocity": None if velocity is None else round(velocity, 1),
             "score": score,
             "risk_flags": flags,
+            **brand,
             "sales_scope": sales_scope(latest),
             "data_quality_issue": data_quality_issue,
             "comparison_note": (

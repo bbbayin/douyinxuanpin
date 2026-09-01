@@ -3,6 +3,7 @@ import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
+from .brands import DEFAULT_BRANDS
 from .config import DATA_DIR, DB_PATH, DEFAULT_KEYWORDS
 
 
@@ -91,6 +92,13 @@ def init_db():
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS brand_rules (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE,
+                aliases TEXT NOT NULL DEFAULT '[]',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at TEXT NOT NULL
+            );
             CREATE TABLE IF NOT EXISTS douyin_opportunities (
                 id INTEGER PRIMARY KEY,
                 external_id TEXT NOT NULL UNIQUE,
@@ -132,6 +140,11 @@ def init_db():
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('keyword_cursor','0')")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('daily_start_hour','13')")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('last_cycle_date','')")
+        if db.execute("SELECT COUNT(*) FROM brand_rules").fetchone()[0] == 0:
+            db.executemany(
+                "INSERT INTO brand_rules(name,aliases,enabled,created_at) VALUES(?,?,1,?)",
+                [(name, json.dumps(aliases, ensure_ascii=False), utc_now()) for name, aliases in DEFAULT_BRANDS],
+            )
         db.execute(
             "UPDATE collection_runs SET status='failed', finished_at=?, error='服务中断，任务未完成' WHERE status='running'",
             (utc_now(),),
@@ -143,6 +156,42 @@ def init_db():
                 [(word, utc_now()) for word in DEFAULT_KEYWORDS],
             )
         _migrate_categories(db)
+
+
+def list_brands():
+    with connect() as db:
+        rows = [dict(row) for row in db.execute("SELECT * FROM brand_rules ORDER BY id")]
+    for row in rows:
+        row["aliases"] = json.loads(row.get("aliases") or "[]")
+        row["enabled"] = bool(row["enabled"])
+    return rows
+
+
+def replace_brands(brands: list[dict]):
+    cleaned = []
+    seen = set()
+    for brand in brands:
+        name = brand.get("name", "").strip()
+        if not name or name.casefold() in seen:
+            raise ValueError("品牌名称不能为空或重复")
+        seen.add(name.casefold())
+        aliases = list(dict.fromkeys(
+            value.strip() for value in brand.get("aliases", [])
+            if value.strip() and value.strip().casefold() != name.casefold()
+        ))
+        cleaned.append({"name": name, "aliases": aliases, "enabled": bool(brand.get("enabled", True))})
+    if not cleaned:
+        raise ValueError("至少保留一个品牌")
+    with connect() as db:
+        db.execute("DELETE FROM brand_rules")
+        db.executemany(
+            "INSERT INTO brand_rules(name,aliases,enabled,created_at) VALUES(?,?,?,?)",
+            [
+                (item["name"], json.dumps(item["aliases"], ensure_ascii=False), 1 if item["enabled"] else 0, utc_now())
+                for item in cleaned
+            ],
+        )
+    return list_brands()
 
 
 def _migrate_categories(db):

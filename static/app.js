@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const state = { categories: [], polling: null, settings: null, platform: '1688' };
+const state = { categories: [], brands: [], polling: null, settings: null, platform: '1688' };
 
 async function api(url, options={}) {
   const response = await fetch(url, {headers:{'Content-Type':'application/json'}, ...options});
@@ -53,12 +53,19 @@ async function loadSettings() {
   $('minDelaySeconds').value = settings.min_delay_seconds;
 }
 
+async function loadBrands() {
+  state.brands = await api('/api/brands');
+  $('brandRules').value = state.brands.filter(item=>item.enabled).map(item=>[item.name, ...(item.aliases||[])].join(' | ')).join('\n');
+}
+
 async function loadOverview() {
   const douyin = state.platform === 'douyin';
-  const data = await api(douyin ? '/api/douyin/overview' : '/api/overview');
+  const hideBrands = fieldChecked('hideBrands', true);
+  const data = await api(`${douyin ? '/api/douyin/overview' : '/api/overview'}?hide_brands=${hideBrands}`);
   $('productCount').textContent = num(douyin ? data.opportunity_count : data.product_count);
   $('growthReady').textContent = num(douyin ? data.growing_count : data.growth_ready);
   $('highRisk').textContent = num(douyin ? data.source_count : data.high_risk);
+  $('brandFilteredCount').textContent = num(data.brand_blocked_count || 0);
   const run = data.latest_run;
   $('runStatus').textContent = !run ? '未运行' : ({running:'采集中',success:'成功',failed:'失败'}[run.status] || run.status);
   $('collectBtn').disabled = run?.status === 'running';
@@ -67,12 +74,13 @@ async function loadOverview() {
 }
 
 async function loadDouyin() {
-  const items = await api('/api/douyin/opportunities');
+  const items = await api(`/api/douyin/opportunities?hide_brands=${fieldChecked('hideBrands', true)}`);
   $('douyinEmpty').style.display = items.length ? 'none' : 'block';
   $('douyinRows').innerHTML = items.map((item,i)=>{
     const benefits = item.benefits.length ? item.benefits.map(v=>`<span class="benefit">${esc(v)}</span>`).join('') : '—';
     const source = item.has_source ? `<button class="op-action source-action" data-id="${item.id}">官方货源</button>` : '<button class="op-action" disabled>暂无货源</button>';
-    return `<tr><td>${i+1}</td><td class="title"><strong>${esc(item.title)}</strong><small>已采集 ${num(item.snapshot_count)} 次 · 第 ${num(item.source_page)} 页</small></td><td>${esc(item.search_volume_text||'—')}</td><td class="${(item.growth_rate||0)>0?'positive':''}">${pct(item.growth_rate)}</td><td>${esc(item.recommendation||'—')}</td><td>${benefits}</td><td>${item.has_source?'<span class="source-yes">可找货源</span>':'<span class="muted">暂无</span>'}</td><td><span class="score">${num(item.score)}</span></td><td><div class="op-actions"><button class="op-action products-action" data-id="${item.id}">抖音爆品</button>${source}<a class="op-action alibaba-action" target="_blank" rel="noopener" href="${esc(item.alibaba_url)}">1688同款</a></div></td><td>${new Date(item.collected_at).toLocaleString('zh-CN')}</td></tr>`;
+    const brand = item.brand_status === 'blocked' ? `<span class="brand-blocked">${esc(item.brand_reason)}</span>` : item.brand_status === 'review' ? `<span class="brand-review">${esc(item.brand_reason)}</span>` : '';
+    return `<tr><td>${i+1}</td><td class="title"><strong>${esc(item.title)}</strong>${brand}<small>已采集 ${num(item.snapshot_count)} 次 · 第 ${num(item.source_page)} 页</small></td><td>${esc(item.search_volume_text||'—')}</td><td class="${(item.growth_rate||0)>0?'positive':''}">${pct(item.growth_rate)}</td><td>${esc(item.recommendation||'—')}</td><td>${benefits}</td><td>${item.has_source?'<span class="source-yes">可找货源</span>':'<span class="muted">暂无</span>'}</td><td><span class="score">${num(item.score)}</span></td><td><div class="op-actions"><button class="op-action products-action" data-id="${item.id}">抖音爆品</button>${source}<a class="op-action alibaba-action" target="_blank" rel="noopener" href="${esc(item.alibaba_url)}">1688同款</a></div></td><td>${new Date(item.collected_at).toLocaleString('zh-CN')}</td></tr>`;
   }).join('');
 }
 
@@ -86,18 +94,20 @@ function switchPlatform() {
   $('countLabel').textContent = douyin ? '抖音商机词' : '候选商品';
   $('growthLabel').textContent = douyin ? '成交增长中' : '已有增长数据';
   $('riskLabel').textContent = douyin ? '有代发货源' : '高风险宣称';
-  $('noticeText').innerHTML = douyin ? '<strong>抖音商机数据来自官方商机中心。</strong>成交增速是平台提供的指标，搜索次数为区间值；与1688销量分开排名。' : '<strong>增长榜按相邻两天同一时段计算。</strong> 每天从设定时间开始分批采集，批次间隔至少30分钟；只有约24小时且销量口径一致的快照才参与增长计算。';
+  $('noticeText').innerHTML = douyin ? '<strong>抖音商机数据来自官方商机中心。</strong> 默认隐藏品牌机会词；疑似品牌仍展示并标记，成交增速与1688销量分开排名。' : '<strong>增长榜按相邻两天同一时段计算。</strong> 默认隐藏明确品牌商品；疑似品牌仍展示并标记，只有约24小时且销量口径一致的快照才参与增长计算。';
   refresh();
 }
 
 async function loadProducts() {
-  const qs = new URLSearchParams({min_sales:$('minSales').value||0});
+  const qs = new URLSearchParams({min_sales:$('minSales').value||0, hide_brands:fieldChecked('hideBrands', true)});
   if ($('keywordFilter').value) qs.set('category_id', $('keywordFilter').value);
   const products = await api(`/api/products?${qs}`);
   $('emptyState').style.display = products.length ? 'none' : 'block';
   $('productRows').innerHTML = products.map((p,i) => {
     const cls = (p.sales_delta || 0) > 0 ? 'positive' : (p.sales_delta || 0) < 0 ? 'negative' : '';
-    const risks = p.risk_flags.length ? p.risk_flags.map(r=>`<span class="risk">${esc(r)}</span>`).join('') : '<span class="safe">未命中</span>';
+    const riskItems = [...p.risk_flags];
+    if (p.brand_status !== 'safe') riskItems.unshift(p.brand_reason);
+    const risks = riskItems.length ? riskItems.map((r,index)=>`<span class="${index===0&&p.brand_status==='blocked'?'brand-blocked':index===0&&p.brand_status==='review'?'brand-review':'risk'}">${esc(r)}</span>`).join('') : '<span class="safe">未命中</span>';
     const image = p.image_url ? `<img src="${esc(p.image_url)}" referrerpolicy="no-referrer" loading="lazy" onerror="imageFallback(this)">` : '<div class="image-placeholder">无图</div>';
     const delta = p.data_quality_issue ? `<span class="risk" title="${esc(p.data_quality_issue)}">异常已排除</span>` : (p.sales_delta==null?'待次日':(p.sales_delta>0?'+':'')+num(p.sales_delta));
     const confidenceLabel = p.data_quality_issue ? '异常' : ({baseline:'待次日',medium:'有效',high:'高'}[p.confidence]);
@@ -137,12 +147,15 @@ $('douyinRows').onclick=(event)=>{
   openDouyin(Number(button.dataset.id), button.classList.contains('source-action') ? 'source' : 'products');
 };
 $('refreshBtn').onclick=refresh;
+$('hideBrands').onchange=refresh;
 $('platformFilter').onchange=switchPlatform;
 $('keywordFilter').onchange=loadProducts;
 $('keywordBtn').onclick=()=>{renderCategoryEditor();$('keywordDialog').showModal();};
+$('brandBtn').onclick=()=>{$('brandDialog').showModal();};
 $('addCategory').onclick=()=>{$('categoryRows').insertAdjacentHTML('beforeend',categoryCard());};
 $('categoryRows').onclick=(event)=>{if(event.target.classList.contains('delete-category')&&confirm('确定删除这个品类吗？保存后才会生效。'))event.target.closest('.category-card').remove();};
 $('saveSettings').onclick=async()=>{try{await api('/api/settings',{method:'PUT',body:JSON.stringify({auto_enabled:fieldChecked('autoEnabled'),interval_hours:state.settings?.interval_hours||12,daily_start_hour:Number(fieldValue('dailyStartHour',13)||13),batch_size:Number(fieldValue('batchSize',2)||2),pages_per_keyword:Number(fieldValue('pagesPerKeyword',2)||2),min_delay_seconds:Number(fieldValue('minDelaySeconds',20)||20)})});await loadSettings();message('每日采集设置已保存');}catch(e){message(e.message,true)}};
 $('saveKeywords').onclick=async()=>{try{const categories=[...$('categoryRows').querySelectorAll('.category-card')].map(card=>({name:card.querySelector('[data-role="name"]').value.trim(),enabled:card.querySelector('[data-role="enabled"]').checked,keywords:card.querySelector('[data-role="keywords"]').value.split('\n').map(v=>v.trim()).filter(Boolean)}));await api('/api/categories',{method:'PUT',body:JSON.stringify({categories})});await loadCategories();$('keywordDialog').close();await loadProducts();message('品类和采集关键词已保存');}catch(e){message(e.message,true)}};
+$('saveBrands').onclick=async()=>{try{const brands=$('brandRules').value.split('\n').map(line=>line.split(/[|｜]/).map(v=>v.trim()).filter(Boolean)).filter(parts=>parts.length).map(parts=>({name:parts[0],aliases:parts.slice(1),enabled:true}));await api('/api/brands',{method:'PUT',body:JSON.stringify({brands})});await loadBrands();$('brandDialog').close();await refresh();message(`品牌词库已保存，共 ${brands.length} 个品牌`);}catch(e){message(e.message,true)}};
 
-(async()=>{try{await Promise.all([loadCategories(),loadSettings()]);await refresh();}catch(e){message(`页面初始化失败：${e.message}`,true);}})();
+(async()=>{try{await Promise.all([loadCategories(),loadSettings(),loadBrands()]);await refresh();}catch(e){message(`页面初始化失败：${e.message}`,true);}})();

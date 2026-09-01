@@ -3,9 +3,10 @@ import math
 
 from .collectors.alibaba1688 import search_url
 from .collectors.douyin import PRODUCTS_URL, TARGET_URL
+from .brands import classify_brand
 
 
-def rank_douyin_opportunities(opportunities: list[dict]) -> list[dict]:
+def rank_douyin_opportunities(opportunities: list[dict], brands: list[dict] | None = None) -> list[dict]:
     ranked = []
     for opportunity in opportunities:
         if not opportunity["snapshots"]:
@@ -18,8 +19,9 @@ def rank_douyin_opportunities(opportunities: list[dict]) -> list[dict]:
         if latest.get("has_source"):
             score += 10
         score += len(benefits) * 2
+        brand = classify_brand([opportunity["title"]], brands)
         ranked.append({
-            "id": opportunity["id"], "title": opportunity["title"],
+            "id": opportunity["id"], "external_id": opportunity["external_id"], "title": opportunity["title"],
             "first_seen_at": opportunity["first_seen_at"], "last_seen_at": opportunity["last_seen_at"],
             "search_volume_min": latest.get("search_volume_min"),
             "search_volume_max": latest.get("search_volume_max"),
@@ -31,6 +33,7 @@ def rank_douyin_opportunities(opportunities: list[dict]) -> list[dict]:
             "source_page": max(1, int(latest.get("source_page") or 1)),
             "business_url": TARGET_URL, "products_url": PRODUCTS_URL,
             "alibaba_url": search_url(opportunity["title"]),
+            **brand,
         })
     ranked.sort(key=lambda item: item["score"], reverse=True)
     return ranked

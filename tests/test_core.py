@@ -1,5 +1,6 @@
 import unittest
 
+from app.brands import classify_brand, normalize_brand_text
 from app.collectors.alibaba1688 import is_login_url, offer_id, parse_number, parse_prices, parse_repurchase_rate, parse_sales, parse_shop_name, search_url
 from app.ranking import rank_products, risk_flags
 from app.collectors.douyin import parse_card_text, parse_growth, parse_volume_range
@@ -41,7 +42,7 @@ class ParsingTests(unittest.TestCase):
 
     def test_douyin_links_and_source_page(self):
         ranked = rank_douyin_opportunities([{
-            "id": 9, "title": "高中生洗发水", "first_seen_at": "2026-09-01T05:00:00+00:00",
+            "id": 9, "external_id": "dy-9", "title": "高中生洗发水", "first_seen_at": "2026-09-01T05:00:00+00:00",
             "last_seen_at": "2026-09-01T05:00:00+00:00", "snapshots": [{
                 "collected_at": "2026-09-01T05:00:00+00:00", "search_volume_max": 25000,
                 "search_volume_text": "2万-2.5万", "growth_rate": 5.5, "has_source": 1,
@@ -51,6 +52,17 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(ranked["source_page"], 2)
         self.assertIn("clueChannel=all_product", ranked["products_url"])
         self.assertIn("%B8%DF%D6%D0%C9%FA", ranked["alibaba_url"])
+
+    def test_brand_detection_and_review(self):
+        brands = [{"name": "欧莱雅", "aliases": ["L'Oréal", "LOREAL"], "enabled": True}]
+        blocked = classify_brand(["巴黎 L’OREAL 染发膏"], brands)
+        review = classify_brand(["官方正品防伪洗发水"], brands)
+        safe = classify_brand(["高中生蓬松洗发水"], brands)
+        self.assertEqual(normalize_brand_text("L’Oréal"), "loréal")
+        self.assertEqual(blocked["brand_status"], "blocked")
+        self.assertEqual(blocked["brand_name"], "欧莱雅")
+        self.assertEqual(review["brand_status"], "review")
+        self.assertEqual(safe["brand_status"], "safe")
 
 
 class RankingTests(unittest.TestCase):

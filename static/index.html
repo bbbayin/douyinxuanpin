@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>多平台增长选品台</title>
-  <link rel="stylesheet" href="/static/styles.css?v=9">
-  <link rel="stylesheet" href="/static/red-theme.css?v=9">
+  <link rel="stylesheet" href="/static/styles.css?v=10">
+  <link rel="stylesheet" href="/static/red-theme.css?v=10">
 </head>
 <body>
   <header>
@@ -41,6 +41,8 @@
       </label>
       <button class="secondary" id="refreshBtn">刷新榜单</button>
       <button class="text-button platform-1688" id="keywordBtn">品类维护</button>
+      <button class="text-button" id="brandBtn">品牌词库</button>
+      <label class="brand-filter"><span>隐藏知名品牌 <small id="brandFilteredCount">0</small></span><input id="hideBrands" type="checkbox" checked></label>
       <label class="auto-setting platform-1688"><span>自动采集</span><input id="autoEnabled" type="checkbox"></label>
       <label class="platform-1688"><span>每日开始时间</span><input id="dailyStartHour" type="number" min="13" max="23" value="13"></label>
       <label class="platform-1688"><span>每批关键词</span><input id="batchSize" type="number" min="1" max="5" value="2"></label>
@@ -53,7 +55,7 @@
 
     <section class="notice" id="noticeText">
       <strong>增长榜按相邻两天同一时段计算。</strong>
-      每天从设定时间开始分批采集，批次间隔至少30分钟；只有约24小时且销量口径一致的快照才参与增长计算。
+      默认隐藏明确品牌商品；疑似品牌仍展示并标记，只有约24小时且销量口径一致的快照才参与增长计算。
     </section>
 
     <section class="panel table-wrap" id="productTableWrap">
@@ -87,6 +89,14 @@
       <div class="dialog-actions"><button value="cancel" class="secondary">取消</button><button type="button" id="saveKeywords" class="primary">保存</button></div>
     </form>
   </dialog>
-  <script src="/static/app.js?v=9"></script>
+  <dialog id="brandDialog">
+    <form method="dialog">
+      <div class="dialog-head"><h2>品牌过滤词库</h2><button value="cancel" aria-label="关闭">×</button></div>
+      <p>每行一个品牌，用竖线分隔别名，例如：欧莱雅 | 巴黎欧莱雅 | LOREAL。明确命中时默认隐藏；“正品、专柜、品牌授权”等弱信号只标记待确认。</p>
+      <textarea id="brandRules" rows="18" aria-label="品牌及别名" placeholder="品牌名 | 别名1 | 别名2"></textarea>
+      <div class="dialog-actions"><button value="cancel" class="secondary">取消</button><button type="button" id="saveBrands" class="primary">保存品牌词库</button></div>
+    </form>
+  </dialog>
+  <script src="/static/app.js?v=10"></script>
 </body>
 </html>
