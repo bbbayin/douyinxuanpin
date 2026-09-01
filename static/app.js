@@ -71,7 +71,8 @@ async function loadDouyin() {
   $('douyinEmpty').style.display = items.length ? 'none' : 'block';
   $('douyinRows').innerHTML = items.map((item,i)=>{
     const benefits = item.benefits.length ? item.benefits.map(v=>`<span class="benefit">${esc(v)}</span>`).join('') : '—';
-    return `<tr><td>${i+1}</td><td class="title"><strong>${esc(item.title)}</strong><small>已采集 ${num(item.snapshot_count)} 次</small></td><td>${esc(item.search_volume_text||'—')}</td><td class="${(item.growth_rate||0)>0?'positive':''}">${pct(item.growth_rate)}</td><td>${esc(item.recommendation||'—')}</td><td>${benefits}</td><td>${item.has_source?'<span class="source-yes">可找货源</span>':'<span class="muted">暂无</span>'}</td><td><span class="score">${num(item.score)}</span></td><td>${new Date(item.collected_at).toLocaleString('zh-CN')}</td></tr>`;
+    const source = item.has_source ? `<button class="op-action source-action" data-id="${item.id}">官方货源</button>` : '<button class="op-action" disabled>暂无货源</button>';
+    return `<tr><td>${i+1}</td><td class="title"><strong>${esc(item.title)}</strong><small>已采集 ${num(item.snapshot_count)} 次 · 第 ${num(item.source_page)} 页</small></td><td>${esc(item.search_volume_text||'—')}</td><td class="${(item.growth_rate||0)>0?'positive':''}">${pct(item.growth_rate)}</td><td>${esc(item.recommendation||'—')}</td><td>${benefits}</td><td>${item.has_source?'<span class="source-yes">可找货源</span>':'<span class="muted">暂无</span>'}</td><td><span class="score">${num(item.score)}</span></td><td><div class="op-actions"><button class="op-action products-action" data-id="${item.id}">抖音爆品</button>${source}<a class="op-action alibaba-action" target="_blank" rel="noopener" href="${esc(item.alibaba_url)}">1688同款</a></div></td><td>${new Date(item.collected_at).toLocaleString('zh-CN')}</td></tr>`;
   }).join('');
 }
 
@@ -119,9 +120,22 @@ async function collectDouyin(){
   catch(e){$('douyinCollectBtn').disabled=false;message(e.message,true);}
 }
 
+async function openDouyin(itemId, action) {
+  try {
+    const label = action === 'source' ? '官方货源' : '抖音爆品';
+    const result = await api(`/api/douyin/opportunities/${itemId}/open`, {method:'POST', body:JSON.stringify({action})});
+    if (result.accepted) message(`${label}窗口正在打开；查看完成后请关闭该Chrome窗口`);
+  } catch(e) { message(e.message, true); }
+}
+
 $('collectBtn').onclick=()=>collect('live');
 $('demoBtn').onclick=()=>collect('demo');
 $('douyinCollectBtn').onclick=collectDouyin;
+$('douyinRows').onclick=(event)=>{
+  const button = event.target.closest('button[data-id]');
+  if (!button) return;
+  openDouyin(Number(button.dataset.id), button.classList.contains('source-action') ? 'source' : 'products');
+};
 $('refreshBtn').onclick=refresh;
 $('platformFilter').onchange=switchPlatform;
 $('keywordFilter').onchange=loadProducts;

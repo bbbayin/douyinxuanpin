@@ -111,6 +111,7 @@ def init_db():
                 recommendation TEXT,
                 benefits TEXT,
                 raw_json TEXT,
+                source_page INTEGER NOT NULL DEFAULT 1,
                 UNIQUE(opportunity_id, collected_at)
             );
             CREATE INDEX IF NOT EXISTS idx_douyin_snapshots_time
@@ -120,6 +121,9 @@ def init_db():
         keyword_columns = {row["name"] for row in db.execute("PRAGMA table_info(keywords)")}
         if "category_id" not in keyword_columns:
             db.execute("ALTER TABLE keywords ADD COLUMN category_id INTEGER REFERENCES categories(id)")
+        douyin_snapshot_columns = {row["name"] for row in db.execute("PRAGMA table_info(douyin_snapshots)")}
+        if "source_page" not in douyin_snapshot_columns:
+            db.execute("ALTER TABLE douyin_snapshots ADD COLUMN source_page INTEGER NOT NULL DEFAULT 1")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('auto_enabled','0')")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('interval_hours','12')")
         db.execute("INSERT OR IGNORE INTO settings(key,value) VALUES('batch_size','2')")
@@ -344,14 +348,15 @@ def upsert_douyin_opportunity(item: dict, collected_at: str):
             """
             INSERT OR REPLACE INTO douyin_snapshots(
                 opportunity_id,collected_at,search_volume_min,search_volume_max,search_volume_text,
-                growth_rate,has_source,recommendation,benefits,raw_json
-            ) VALUES(?,?,?,?,?,?,?,?,?,?)
+                growth_rate,has_source,recommendation,benefits,raw_json,source_page
+            ) VALUES(?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 opportunity_id, collected_at, item.get("search_volume_min"), item.get("search_volume_max"),
                 item.get("search_volume_text"), item.get("growth_rate"), 1 if item.get("has_source") else 0,
                 item.get("recommendation"), json.dumps(item.get("benefits", []), ensure_ascii=False),
                 json.dumps(item, ensure_ascii=False),
+                max(1, int(item.get("source_page", 1))),
             ),
         )
 

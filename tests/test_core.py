@@ -3,6 +3,7 @@ import unittest
 from app.collectors.alibaba1688 import is_login_url, offer_id, parse_number, parse_prices, parse_repurchase_rate, parse_sales, parse_shop_name, search_url
 from app.ranking import rank_products, risk_flags
 from app.collectors.douyin import parse_card_text, parse_growth, parse_volume_range
+from app.douyin_ranking import rank_douyin_opportunities
 
 
 class ParsingTests(unittest.TestCase):
@@ -37,6 +38,19 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(parse_volume_range("小于50"), (0, 50))
         self.assertEqual(parse_growth("554.75%"), 5.5475)
         self.assertTrue(item["has_source"])
+
+    def test_douyin_links_and_source_page(self):
+        ranked = rank_douyin_opportunities([{
+            "id": 9, "title": "高中生洗发水", "first_seen_at": "2026-09-01T05:00:00+00:00",
+            "last_seen_at": "2026-09-01T05:00:00+00:00", "snapshots": [{
+                "collected_at": "2026-09-01T05:00:00+00:00", "search_volume_max": 25000,
+                "search_volume_text": "2万-2.5万", "growth_rate": 5.5, "has_source": 1,
+                "benefits": "[]", "source_page": 2,
+            }],
+        }])[0]
+        self.assertEqual(ranked["source_page"], 2)
+        self.assertIn("clueChannel=all_product", ranked["products_url"])
+        self.assertIn("%B8%DF%D6%D0%C9%FA", ranked["alibaba_url"])
 
 
 class RankingTests(unittest.TestCase):

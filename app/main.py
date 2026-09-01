@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from .config import STATIC_DIR
 from .db import category_keyword_values, get_settings, init_db, list_categories, list_keywords, load_douyin_opportunities, load_products_with_snapshots, recent_runs, recent_runs_for_mode, replace_categories, replace_keywords, save_settings
 from .douyin_ranking import rank_douyin_opportunities
+from .douyin_navigation import run_douyin_navigation
 from .douyin_service import run_douyin_collection
 from .ranking import rank_products
 from .scheduler import scheduler
@@ -48,6 +49,10 @@ class CollectPayload(BaseModel):
 
 class DouyinCollectPayload(BaseModel):
     pages: int = 2
+
+
+class DouyinOpenPayload(BaseModel):
+    action: str
 
 
 class SettingsPayload(BaseModel):
@@ -161,6 +166,24 @@ def overview():
 @app.get("/api/douyin/opportunities")
 def douyin_opportunities(limit: int = Query(300, ge=1, le=2000)):
     return rank_douyin_opportunities(load_douyin_opportunities())[:limit]
+
+
+@app.post("/api/douyin/opportunities/{opportunity_id}/open")
+def douyin_open(opportunity_id: int, payload: DouyinOpenPayload):
+    opportunity = next(
+        (item for item in rank_douyin_opportunities(load_douyin_opportunities()) if item["id"] == opportunity_id),
+        None,
+    )
+    if opportunity is None:
+        raise HTTPException(404, "抖音机会词不存在")
+    if payload.action == "source" and not opportunity["has_source"]:
+        raise HTTPException(409, "该机会词当前没有官方货源")
+    result = run_douyin_navigation(
+        payload.action, opportunity["title"], opportunity.get("source_page", 1)
+    )
+    if not result["accepted"]:
+        raise HTTPException(409, result["message"])
+    return result
 
 
 @app.get("/api/douyin/overview")

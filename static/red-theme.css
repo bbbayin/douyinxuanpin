@@ -70,8 +70,13 @@ img.image-error {
 .benefit { display:inline-block; margin:2px; padding:4px 7px; border-radius:5px; background:#fee4e2; color:#b42318; font-size:11px; }
 .source-yes { color:#b42318; font-weight:750; }
 .muted { color:var(--muted); }
-#douyinTableWrap table { min-width: 1050px; }
+#douyinTableWrap table { min-width: 1280px; }
 #douyinRows td.title small { display:block; color:var(--muted); margin-top:5px; }
+.op-actions { display:grid; grid-template-columns:repeat(2, max-content); gap:6px; }
+.op-action { display:inline-flex; align-items:center; justify-content:center; min-height:30px; padding:5px 9px; border:1px solid #e7b9b3; border-radius:7px; background:#fff8f7; color:#9f2118; font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap; }
+.op-action:hover { background:#fee4e2; }
+.op-action:disabled { color:#aa918e; background:#f7efee; }
+.alibaba-action { grid-column:1 / -1; border-color:#e76f2e; color:#b84d16; }
 
 #keywordDialog {
   width: min(760px, 94vw);

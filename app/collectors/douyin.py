@@ -10,6 +10,7 @@ from ..config import DOUYIN_BROWSER_PROFILE
 
 
 TARGET_URL = "https://fxg.jinritemai.com/ffa/bu/NewBusinessCenter"
+PRODUCTS_URL = f"{TARGET_URL}?clueChannel=all_product"
 CHROME_PATHS = [
     Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
     Path("/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"),
@@ -130,6 +131,7 @@ class DouyinOpportunityCollector:
                 for raw in raw_cards:
                     item = parse_card_text(raw)
                     if item and item["external_id"] not in seen:
+                        item["source_page"] = page_number + 1
                         items.append(item)
                         seen.add(item["external_id"])
                 if page_number + 1 >= pages:
