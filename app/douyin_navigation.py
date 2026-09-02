@@ -32,31 +32,44 @@ async def _open(action: str, title: str, source_page: int, ready: threading.Even
 
         if action == "source":
             target_page = max(1, min(source_page, 5))
-            if target_page > 1:
-                page_link = page.locator(
-                    f"li.ant-pagination-item[title='{target_page}'] a, li[title='{target_page}'] a"
-                ).first
-                if await page_link.count():
-                    await page_link.click()
-                    await page.wait_for_timeout(2500)
-
+            pages_to_check = [target_page, *(number for number in range(1, 6) if number != target_page)]
             title_locator = page.get_by_text(title, exact=True)
-            found = await title_locator.count() > 0
-            if found:
-                card = title_locator.last.locator(
-                    "xpath=ancestor::*[.//button[contains(normalize-space(.), '找货源')]][1]"
-                )
-                button = card.get_by_role("button", name="找货源")
-                if await button.count():
-                    await button.click()
-                    await page.wait_for_timeout(1000)
-                else:
-                    found = False
-            if not found:
-                raise RuntimeError(f"商机列表第{target_page}页没有找到“{title}”，请重新采集后再试")
+            found_page = None
+            current_page = 1
+            for candidate in pages_to_check:
+                if candidate != current_page:
+                    page_link = page.locator(
+                        f"li.ant-pagination-item[title='{candidate}'] a, li[title='{candidate}'] a"
+                    ).first
+                    if not await page_link.count():
+                        continue
+                    await page_link.click()
+                    current_page = candidate
+                    await page.wait_for_timeout(1800)
+                if await title_locator.count() and await title_locator.last.is_visible():
+                    found_page = candidate
+                    break
+            if found_page is None:
+                raise RuntimeError(f"商机中心前5页没有找到“{title}”，该商机可能已下榜，请重新采集")
+            card = title_locator.last.locator(
+                "xpath=ancestor::*[.//button[contains(normalize-space(.), '找货源')]][1]"
+            )
+            button = card.get_by_role("button", name="找货源")
+            if not await button.count():
+                raise RuntimeError(f"“{title}”的找货源按钮已失效，请重新采集后再试")
+            await button.click()
+            source_panel = page.get_by_text("找官方源头好货", exact=False).last
+            try:
+                await source_panel.wait_for(state="visible", timeout=15000)
+            except Exception as exc:
+                raise RuntimeError(f"已找到“{title}”，但抖音没有打开货源面板，请稍后重试") from exc
 
         await page.bring_to_front()
-        outcome.update({"accepted": True, "action": action})
+        outcome.update({
+            "accepted": True,
+            "action": action,
+            "message": "已打开抖音爆品总榜" if action == "products" else f"已打开“{title}”的官方货源",
+        })
         ready.set()
         while context.pages:
             await asyncio.sleep(1)
@@ -82,6 +95,6 @@ def run_douyin_navigation(action: str, title: str, source_page: int = 1):
             PROFILE_LOCK.release()
 
     threading.Thread(target=worker, name=f"douyin-open-{action}", daemon=True).start()
-    if ready.wait(timeout=30):
+    if ready.wait(timeout=90):
         return outcome
-    return {"accepted": True, "action": action, "message": "抖音页面仍在加载，请稍候"}
+    return {"accepted": False, "message": "打开抖音页面超时，请关闭Chrome窗口后重试"}

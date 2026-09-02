@@ -62,10 +62,6 @@ class DouyinCollectPayload(BaseModel):
     pages: int = 2
 
 
-class DouyinOpenPayload(BaseModel):
-    action: str
-
-
 class SettingsPayload(BaseModel):
     auto_enabled: bool
     interval_hours: int = 12
@@ -202,18 +198,26 @@ def douyin_opportunities(limit: int = Query(300, ge=1, le=2000), hide_brands: bo
     return ranked[:limit]
 
 
-@app.post("/api/douyin/opportunities/{opportunity_id}/open")
-def douyin_open(opportunity_id: int, payload: DouyinOpenPayload):
+@app.post("/api/douyin/products/open")
+def douyin_products_open():
+    result = run_douyin_navigation("products", "")
+    if not result["accepted"]:
+        raise HTTPException(409, result["message"])
+    return result
+
+
+@app.post("/api/douyin/opportunities/{opportunity_id}/source/open")
+def douyin_source_open(opportunity_id: int):
     opportunity = next(
         (item for item in rank_douyin_opportunities(load_douyin_opportunities(), list_brands()) if item["id"] == opportunity_id),
         None,
     )
     if opportunity is None:
         raise HTTPException(404, "抖音机会词不存在")
-    if payload.action == "source" and not opportunity["has_source"]:
+    if not opportunity["has_source"]:
         raise HTTPException(409, "该机会词当前没有官方货源")
     result = run_douyin_navigation(
-        payload.action, opportunity["title"], opportunity.get("source_page", 1)
+        "source", opportunity["title"], opportunity.get("source_page", 1)
     )
     if not result["accepted"]:
         raise HTTPException(409, result["message"])

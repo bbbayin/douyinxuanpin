@@ -40,7 +40,7 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(parse_growth("554.75%"), 5.5475)
         self.assertTrue(item["has_source"])
 
-    def test_douyin_links_and_source_page(self):
+    def test_douyin_source_page_and_alibaba_link(self):
         ranked = rank_douyin_opportunities([{
             "id": 9, "external_id": "dy-9", "title": "高中生洗发水", "first_seen_at": "2026-09-01T05:00:00+00:00",
             "last_seen_at": "2026-09-01T05:00:00+00:00", "snapshots": [{
@@ -50,8 +50,8 @@ class ParsingTests(unittest.TestCase):
             }],
         }])[0]
         self.assertEqual(ranked["source_page"], 2)
-        self.assertIn("clueChannel=all_product", ranked["products_url"])
         self.assertIn("%B8%DF%D6%D0%C9%FA", ranked["alibaba_url"])
+        self.assertNotIn("products_url", ranked)
 
     def test_brand_detection_and_review(self):
         brands = [{"name": "欧莱雅", "aliases": ["L'Oréal", "LOREAL"], "enabled": True}]
@@ -63,6 +63,21 @@ class ParsingTests(unittest.TestCase):
         self.assertEqual(blocked["brand_name"], "欧莱雅")
         self.assertEqual(review["brand_status"], "review")
         self.assertEqual(safe["brand_status"], "safe")
+
+    def test_douyin_only_shows_latest_collection(self):
+        def opportunity(item_id, seen):
+            return {
+                "id": item_id, "external_id": f"dy-{item_id}", "title": f"机会词{item_id}",
+                "first_seen_at": seen, "last_seen_at": seen, "snapshots": [{
+                    "collected_at": seen, "search_volume_max": 100, "search_volume_text": "50-100",
+                    "growth_rate": 0.1, "has_source": 1, "benefits": "[]", "source_page": 1,
+                }],
+            }
+        ranked = rank_douyin_opportunities([
+            opportunity(1, "2026-09-01T05:00:00+00:00"),
+            opportunity(2, "2026-09-02T05:00:00+00:00"),
+        ])
+        self.assertEqual([item["id"] for item in ranked], [2])
 
 
 class RankingTests(unittest.TestCase):

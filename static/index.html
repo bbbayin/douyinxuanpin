@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>多平台增长选品台</title>
-  <link rel="stylesheet" href="/static/styles.css?v=10">
-  <link rel="stylesheet" href="/static/red-theme.css?v=10">
+  <link rel="stylesheet" href="/static/styles.css?v=11">
+  <link rel="stylesheet" href="/static/red-theme.css?v=11">
 </head>
 <body>
   <header>
@@ -50,6 +50,7 @@
       <label class="platform-1688"><span>搜索间隔（秒）</span><input id="minDelaySeconds" type="number" min="10" max="120" value="20"></label>
       <button class="text-button platform-1688" id="saveSettings">保存设置</button>
       <label class="platform-douyin hidden"><span>本次采集页数</span><input id="douyinPages" type="number" min="1" max="5" value="2"></label>
+      <button class="secondary platform-douyin hidden" id="douyinProductsBtn">查看抖音爆品总榜</button>
       <span class="status" id="message"></span>
     </section>
 
@@ -73,7 +74,7 @@
 
     <section class="panel table-wrap hidden" id="douyinTableWrap">
       <table>
-        <thead><tr><th>排名</th><th>抖音机会词</th><th>搜索次数</th><th>成交增速</th><th>推荐理由</th><th>扶持权益</th><th>代发货源</th><th>商机分</th><th>查看商品和货源</th><th>采集时间</th></tr></thead>
+        <thead><tr><th>排名</th><th>抖音机会词</th><th>搜索次数</th><th>成交增速</th><th>推荐理由</th><th>扶持权益</th><th>代发货源</th><th>商机分</th><th>查看货源</th><th>采集时间</th></tr></thead>
         <tbody id="douyinRows"></tbody>
       </table>
       <div class="empty" id="douyinEmpty">还没有抖音商机数据，点击“采集抖音商机”开始。</div>
@@ -97,6 +98,6 @@
       <div class="dialog-actions"><button value="cancel" class="secondary">取消</button><button type="button" id="saveBrands" class="primary">保存品牌词库</button></div>
     </form>
   </dialog>
-  <script src="/static/app.js?v=10"></script>
+  <script src="/static/app.js?v=11"></script>
 </body>
 </html>

@@ -2,7 +2,6 @@ import json
 import math
 
 from .collectors.alibaba1688 import search_url
-from .collectors.douyin import PRODUCTS_URL, TARGET_URL
 from .brands import classify_brand
 
 
@@ -31,9 +30,11 @@ def rank_douyin_opportunities(opportunities: list[dict], brands: list[dict] | No
             "benefits": benefits, "collected_at": latest["collected_at"],
             "snapshot_count": len(opportunity["snapshots"]), "score": round(score, 1),
             "source_page": max(1, int(latest.get("source_page") or 1)),
-            "business_url": TARGET_URL, "products_url": PRODUCTS_URL,
             "alibaba_url": search_url(opportunity["title"]),
             **brand,
         })
+    if ranked:
+        latest_collection = max(item["last_seen_at"] for item in ranked)
+        ranked = [item for item in ranked if item["last_seen_at"] == latest_collection]
     ranked.sort(key=lambda item: item["score"], reverse=True)
     return ranked

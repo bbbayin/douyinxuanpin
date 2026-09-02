@@ -78,11 +78,11 @@ img.image-error {
 #douyinRows td.title .brand-blocked,#douyinRows td.title .brand-review { display:table; margin-top:5px; }
 #douyinTableWrap table { min-width: 1280px; }
 #douyinRows td.title small { display:block; color:var(--muted); margin-top:5px; }
-.op-actions { display:grid; grid-template-columns:repeat(2, max-content); gap:6px; }
+.op-actions { display:grid; grid-template-columns:max-content; gap:6px; }
 .op-action { display:inline-flex; align-items:center; justify-content:center; min-height:30px; padding:5px 9px; border:1px solid #e7b9b3; border-radius:7px; background:#fff8f7; color:#9f2118; font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap; }
 .op-action:hover { background:#fee4e2; }
 .op-action:disabled { color:#aa918e; background:#f7efee; }
-.alibaba-action { grid-column:1 / -1; border-color:#e76f2e; color:#b84d16; }
+.alibaba-action { border-color:#e76f2e; color:#b84d16; }
 
 #keywordDialog {
   width: min(760px, 94vw);
