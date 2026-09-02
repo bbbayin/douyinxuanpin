@@ -16,6 +16,18 @@ def _browser_path():
     return next((str(path) for path in CHROME_PATHS if path.exists()), None)
 
 
+async def _wait_until_closed(context):
+    while context.pages:
+        await asyncio.sleep(1)
+
+
+async def _show_failure(context, page, ready: threading.Event, outcome: dict, message: str):
+    outcome.update({"accepted": False, "message": message})
+    ready.set()
+    await page.bring_to_front()
+    await _wait_until_closed(context)
+
+
 async def _open(action: str, title: str, source_page: int, ready: threading.Event, outcome: dict):
     DOUYIN_BROWSER_PROFILE.mkdir(parents=True, exist_ok=True)
     async with async_playwright() as pw:
@@ -28,41 +40,54 @@ async def _open(action: str, title: str, source_page: int, ready: threading.Even
         await page.goto(target, wait_until="domcontentloaded", timeout=120000)
         await page.wait_for_timeout(5000)
         if "NewBusinessCenter" not in page.url:
-            raise RuntimeError("抖店登录态已失效，请先手动采集一次抖音商机并完成登录")
+            await _show_failure(
+                context, page, ready, outcome,
+                "抖店登录态已失效，登录窗口已保留；请登录后重新点击",
+            )
+            return
 
         if action == "source":
             target_page = max(1, min(source_page, 5))
-            pages_to_check = [target_page, *(number for number in range(1, 6) if number != target_page)]
+            if target_page > 1:
+                page_link = page.locator(
+                    f"li.ant-pagination-item[title='{target_page}'] a, li[title='{target_page}'] a"
+                ).first
+                if not await page_link.count():
+                    await _show_failure(
+                        context, page, ready, outcome,
+                        f"商机中心没有第{target_page}页，窗口已保留；请重新采集",
+                    )
+                    return
+                await page_link.click()
+                await page.wait_for_timeout(1800)
+
             title_locator = page.get_by_text(title, exact=True)
-            found_page = None
-            current_page = 1
-            for candidate in pages_to_check:
-                if candidate != current_page:
-                    page_link = page.locator(
-                        f"li.ant-pagination-item[title='{candidate}'] a, li[title='{candidate}'] a"
-                    ).first
-                    if not await page_link.count():
-                        continue
-                    await page_link.click()
-                    current_page = candidate
-                    await page.wait_for_timeout(1800)
-                if await title_locator.count() and await title_locator.last.is_visible():
-                    found_page = candidate
-                    break
-            if found_page is None:
-                raise RuntimeError(f"商机中心前5页没有找到“{title}”，该商机可能已下榜，请重新采集")
+            if not await title_locator.count() or not await title_locator.last.is_visible():
+                await _show_failure(
+                    context, page, ready, outcome,
+                    f"第{target_page}页没有找到“{title}”，窗口已保留；该商机可能已下榜，请重新采集",
+                )
+                return
             card = title_locator.last.locator(
                 "xpath=ancestor::*[.//button[contains(normalize-space(.), '找货源')]][1]"
             )
             button = card.get_by_role("button", name="找货源")
             if not await button.count():
-                raise RuntimeError(f"“{title}”的找货源按钮已失效，请重新采集后再试")
+                await _show_failure(
+                    context, page, ready, outcome,
+                    f"“{title}”的找货源按钮已失效，窗口已保留；请重新采集",
+                )
+                return
             await button.click()
             source_panel = page.get_by_text("找官方源头好货", exact=False).last
             try:
                 await source_panel.wait_for(state="visible", timeout=15000)
-            except Exception as exc:
-                raise RuntimeError(f"已找到“{title}”，但抖音没有打开货源面板，请稍后重试") from exc
+            except Exception:
+                await _show_failure(
+                    context, page, ready, outcome,
+                    f"已找到“{title}”，但货源面板未打开；窗口已保留，请手动点击找货源",
+                )
+                return
 
         await page.bring_to_front()
         outcome.update({
@@ -71,8 +96,7 @@ async def _open(action: str, title: str, source_page: int, ready: threading.Even
             "message": "已打开抖音爆品总榜" if action == "products" else f"已打开“{title}”的官方货源",
         })
         ready.set()
-        while context.pages:
-            await asyncio.sleep(1)
+        await _wait_until_closed(context)
 
 
 def run_douyin_navigation(action: str, title: str, source_page: int = 1):
